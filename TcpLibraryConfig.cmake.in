@@ -1,0 +1,53 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# Find dependencies
+if(WIN32)
+    # Windows-specific dependencies are handled by the library targets
+else()
+    find_dependency(Threads REQUIRED)
+endif()
+
+# SSL support
+get_filename_component(_tcp_root "${CMAKE_CURRENT_LIST_FILE}" PATH)
+get_filename_component(_tcp_root "${_tcp_root}" PATH)
+get_filename_component(_tcp_root "${_tcp_root}" PATH)
+get_filename_component(_tcp_root "${_tcp_root}" PATH)
+
+if(EXISTS "${_tcp_root}/include/tcp/ssl_context.h")
+    # Try to find OpenSSL if SSL support was enabled
+    find_package(OpenSSL QUIET)
+    if(OpenSSL_FOUND)
+        set(TCP_SSL_SUPPORT ON)
+    endif()
+endif()
+
+# Include targets
+include("${CMAKE_CURRENT_LIST_DIR}/TcpLibraryTargets.cmake")
+
+# Check components
+set(_tcp_supported_components static shared)
+foreach(_comp ${TcpLibrary_FIND_COMPONENTS})
+    if(NOT _comp IN_LIST _tcp_supported_components)
+        set(TcpLibrary_FOUND False)
+        set(TcpLibrary_NOT_FOUND_MESSAGE "Unsupported component: ${_comp}")
+        return()
+    endif()
+endforeach()
+
+# Set default component
+if(NOT TcpLibrary_FIND_COMPONENTS)
+    set(TcpLibrary_FIND_COMPONENTS static)
+endif()
+
+# Verify targets exist
+foreach(_comp ${TcpLibrary_FIND_COMPONENTS})
+    if(NOT TARGET tcp::tcp_${_comp})
+        set(TcpLibrary_FOUND False)
+        set(TcpLibrary_NOT_FOUND_MESSAGE "Target tcp::tcp_${_comp} not found")
+        return()
+    endif()
+endforeach()
+
+check_required_components(TcpLibrary)
